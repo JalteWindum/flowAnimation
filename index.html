@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flow Animation Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: rgb(243, 243, 243);
+            overflow: hidden;
+            font-family: 'Nunito Sans', sans-serif;
+            position: relative;
+        }
+
+        #svg-container {
+            width: 95%;
+            height: 95%;
+            margin: auto;
+        }
+
+        :root svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Base styles for all animated paths */
+        #pipe-from-ice-bath, #pipe-to-ice-bath,
+        #pipe-from-outdoor-pool, #pipe-to-outdoor-pool,
+        #pipe-from-community-room, #pipe-to-community-room,
+        #solar-cable,
+        #heat-exchanger-outdoor-pool-1,
+        #heat-exchanger-outdoor-pool-2,
+        #heat-exchanger-ice-bath-1,
+        #heat-exchanger-ice-bath-2 {
+            /* stroke-dasharray will be set dynamically */
+            animation-duration: 1s;
+            animation-timing-function: linear;
+            animation-iteration-count: infinite;
+            /* animation-name will be set dynamically */
+        }
+
+        /* Ensure SVG text uses Nunito Sans */
+        svg text {
+            font-family: 'Nunito Sans', sans-serif !important;
+            text-rendering: geometricPrecision; /* Improve scaling rendering */
+            -webkit-font-smoothing: antialiased; /* Smoother text in WebKit */
+            -moz-osx-font-smoothing: grayscale; /* Smoother text in Firefox */
+        }
+
+        #logo {
+            position: absolute;
+            bottom: 40px;
+            right: 40px;
+            width: 25px;
+            height: auto;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div id="svg-container"></div>
+    <img id="logo" src="logo.svg" alt="Logo">
+
+    <script>
+        fetch('25040702.svg')
+            .then(response => response.text())
+            .then(svgContent => {
+                document.getElementById('svg-container').innerHTML = svgContent;
+                
+                // Get the SVG element
+                const svg = document.querySelector('svg');
+                
+                // Create a single style element for all animations
+                const styleElement = document.createElement('style');
+                document.head.appendChild(styleElement);
+                
+                // After injection, apply animations with corrected IDs
+                const elements = [
+                    'pipe-from-ice-bath', 'pipe-to-ice-bath',
+                    'pipe-from-outdoor-pool', 'pipe-to-outdoor-pool',
+                    'pipe-from-community-room', 'pipe-to-community-room',
+                    'solar-cable',
+                    'heat-exchanger-outdoor-pool-1',
+                    'heat-exchanger-outdoor-pool-2',
+                    'heat-exchanger-ice-bath-1',
+                    'heat-exchanger-ice-bath-2'
+                ];
+                elements.forEach(id => {
+                    const element = document.querySelector(`#${id}`);
+                    if (element) {
+                        // --- Add Background Line Start ---
+                        const clone = element.cloneNode(true);
+                        clone.id = id + '-bg';
+                        clone.style.strokeDasharray = 'none'; // Remove dashes
+                        clone.style.strokeOpacity = 0.33;      // Set transparency back to 33%
+                        clone.style.animation = 'none';         // Ensure no animation
+                        if (element.parentNode) {
+                            element.parentNode.insertBefore(clone, element);
+                        } else {
+                            console.warn(`Could not find parentNode for element ${id} to insert background line.`);
+                        }
+                        // --- Add Background Line End ---
+
+                        console.log(`Found element ${id}`);
+                        const strokeWidth = parseFloat(getComputedStyle(element).strokeWidth) || 2;
+                        let dashSize;
+                        
+                        // Calculate dash size based on element type
+                        if (id === 'solar-cable') {
+                            dashSize = strokeWidth * 3;
+                        } else {
+                            dashSize = strokeWidth * 2.25;
+                        }
+                        
+                        const dashCycle = dashSize * 2; // Total length of dash + gap
+
+                        // Set dash array and store cycle length in CSS variable
+                        element.style.strokeDasharray = `${dashSize}`;
+                        element.style.setProperty('--dash-cycle', dashCycle);
+                        // element.style.stroke = 'white'; // Reverted: Dashed line color uses SVG original
+                        
+                        // Apply animations based on direction, setting initial offset explicitly
+                        if (id === 'solar-cable' || 
+                            id.includes('from-')) {
+                            // solar-cable and from- pipes: flowVisuallyBackward (0 -> dashCycle)
+                            element.style.strokeDashoffset = 0;
+                            element.style.animationName = 'flowVisuallyBackward';
+                        } else {
+                            // to- pipes and heat exchangers: flowVisuallyForward (dashCycle -> 0)
+                            element.style.strokeDashoffset = dashCycle;
+                            element.style.animationName = 'flowVisuallyForward';
+                        }
+                    } else {
+                        console.log(`Could not find element with id: ${id}`);
+                    }
+                });
+
+                // Add the keyframe animations, using initial offset set in JS
+                styleElement.textContent = `
+                    /* Visually forward: offset decreases (e.g., dashCycle -> 0) */
+                    @keyframes flowVisuallyForward {
+                        to { stroke-dashoffset: 0; }
+                    }
+                    /* Visually backward: offset increases (e.g., 0 -> dashCycle) */
+                    @keyframes flowVisuallyBackward {
+                        to { stroke-dashoffset: var(--dash-cycle); }
+                    }
+                `;
+            })
+            .catch(error => console.error('Error loading SVG:', error));
+    </script>
+</body>
+</html>
