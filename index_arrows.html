@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flow Animation Dashboard (Arrows)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body { margin: 0; padding: 0; width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; background: rgb(243, 243, 243); overflow: hidden; font-family: 'Nunito Sans', sans-serif; position: relative; }
+        #svg-container { width: 95%; height: 95%; margin: auto; }
+        :root svg { width: 100%; height: 100%; }
+        svg text { font-family: 'Nunito Sans', sans-serif !important; text-rendering: geometricPrecision; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+        #logo { position: absolute; bottom: 40px; right: 40px; width: 25px; height: auto; z-index: 1000; }
+    </style>
+</head>
+<body>
+    <div id="svg-container"></div>
+    <img id="logo" src="logo.svg" alt="Logo">
+
+    <script>
+        fetch('25041602-01.svg')
+            .then(response => response.text())
+            .then(svgContent => {
+                document.getElementById('svg-container').innerHTML = svgContent;
+
+                const svg = document.querySelector('#svg-container svg');
+                if (!svg) { console.error("SVG element not found after loading."); return; }
+
+                // Add filter definitions for animated shadow
+                let defs = svg.querySelector('defs');
+                if (!defs) {
+                    defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+                    svg.insertBefore(defs, svg.firstChild);
+                }
+
+                // Create drop shadow filter
+                const filter = document.createElementNS('http://www.w3.org/2000/svg', 'filter');
+                filter.id = 'animated-shadow';
+                filter.setAttribute('x', '-30%');
+                filter.setAttribute('y', '-30%');
+                filter.setAttribute('width', '160%');
+                filter.setAttribute('height', '160%');
+
+                // Create the shadow effect
+                const feDropShadow = document.createElementNS('http://www.w3.org/2000/svg', 'feDropShadow');
+                feDropShadow.setAttribute('dx', '0');
+                feDropShadow.setAttribute('dy', '2');  // Add slight downward offset
+                feDropShadow.setAttribute('stdDeviation', '3');
+                feDropShadow.setAttribute('flood-opacity', '0.25');
+                feDropShadow.setAttribute('flood-color', '#333333');
+
+                // Create the animation for the shadow - simplify to reduce load
+                const animateStdDev = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
+                animateStdDev.setAttribute('attributeName', 'stdDeviation');
+                animateStdDev.setAttribute('values', '3;4;3');  // Reduced range
+                animateStdDev.setAttribute('dur', '5s');  // Slower animation
+                animateStdDev.setAttribute('repeatCount', 'indefinite');
+                
+                // Remove opacity animation to reduce computation
+                // feDropShadow.appendChild(animateOpacity);
+                
+                // Add animation to the shadow effect
+                feDropShadow.appendChild(animateStdDev);
+                
+                // Add shadow to filter
+                filter.appendChild(feDropShadow);
+                
+                // Add filter to defs
+                defs.appendChild(filter);
+                
+                // Apply filter to the cloud-group
+                const cloudGroup = svg.querySelector('#cloud-group');
+                if (cloudGroup) {
+                    cloudGroup.setAttribute('filter', 'url(#animated-shadow)');
+                    
+                    // Remove the floating animation completely
+                }
+
+                // Paths we want to animate
+                const elements = [
+                    'pipe-from-ice-bath', 'pipe-to-ice-bath',
+                    'pipe-from-outdoor-pool', 'pipe-to-outdoor-pool',
+                    'pipe-from-community-room', 'pipe-to-community-room',
+                    'solar-cable',
+                    'heat-exchanger-outdoor-pool-1',
+                    'heat-exchanger-outdoor-pool-2',
+                    'heat-exchanger-ice-bath-1',
+                    'heat-exchanger-ice-bath-2'
+                ];
+
+                elements.forEach(id => {
+                    const element = svg.querySelector(`#${id}`);
+                    if (element && element.parentNode) {
+                        // Special debugging for solar-cable
+                        if (id === 'solar-cable') {
+                            // Remove debug logs
+                            
+                            // Check if it's a group element (<g>) and handle accordingly
+                            const isGroup = element.tagName === 'g';
+                            // Remove debug log
+                            
+                            // Look for polyline elements (not just paths)
+                            if (isGroup) {
+                                // Find polyline elements in the group
+                                const solarPolylines = Array.from(element.querySelectorAll('polyline'));
+                                // Remove debug log
+                                
+                                if (solarPolylines.length > 0) {
+                                    // Use the first polyline for animation
+                                    const solarLine = solarPolylines[0];
+                                    // Remove debug log
+                                    
+                                    // Convert polyline points to path format
+                                    const pointsString = solarLine.getAttribute('points');
+                                    const pointsArray = pointsString.trim().split(/\s+|,/).map(Number);
+                                    
+                                    // Create a path version of the polyline
+                                    let pathD = "";
+                                    for (let i = 0; i < pointsArray.length; i += 2) {
+                                        const cmd = i === 0 ? "M" : "L";
+                                        pathD += `${cmd} ${pointsArray[i]} ${pointsArray[i+1]} `;
+                                    }
+                                    
+                                    // Create a path element for animation
+                                    const solarPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                                    solarPath.id = 'solar-cable-path';
+                                    solarPath.setAttribute('d', pathD);
+                                    solarPath.setAttribute('stroke', getComputedStyle(solarLine).stroke);
+                                    solarPath.setAttribute('stroke-width', getComputedStyle(solarLine).strokeWidth);
+                                    solarPath.setAttribute('fill', 'none');
+                                    solarPath.style.opacity = '0.3';
+                                    
+                                    // Add the path after the original polyline
+                                    solarLine.parentNode.insertBefore(solarPath, solarLine.nextSibling);
+                                    
+                                    // Hide the original polyline
+                                    solarLine.style.display = 'none';
+                                    
+                                    // Get stroke properties
+                                    const solarStrokeWidth = parseFloat(getComputedStyle(solarLine).strokeWidth) || 2;
+                                    const solarColor = getComputedStyle(solarLine).stroke || 'yellow';
+                                    // Remove debug log
+                                    
+                                    // Add arrows for the solar cable
+                                    const numArrows = 6; // Number of arrows for solar cable
+                                    
+                                    for (let i = 0; i < numArrows; i++) {
+                                        // Create an arrow for solar cable
+                                        const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+                                        
+                                        // Set arrow size - make them smaller
+                                        const solarArrowSize = solarStrokeWidth * 3; // Reduced from 6 to 3
+                                        const headWidth = solarArrowSize * 0.75;
+                                        const shaftWidth = solarArrowSize/4;
+                                        const shaftLength = solarArrowSize * 1.5;
+                                        
+                                        // Arrow shape
+                                        arrow.setAttribute('points', `0,0 -${headWidth},-${headWidth} -${headWidth},-${shaftWidth} -${shaftLength},-${shaftWidth} -${shaftLength},${shaftWidth} -${headWidth},${shaftWidth} -${headWidth},${headWidth}`);
+                                        arrow.setAttribute('fill', solarColor);
+                                        
+                                        // Animation
+                                        const animate = document.createElementNS('http://www.w3.org/2000/svg', 'animateMotion');
+                                        animate.setAttribute('dur', '3s');
+                                        animate.setAttribute('repeatCount', 'indefinite');
+                                        animate.setAttribute('rotate', 'auto');
+                                        
+                                        // Reverse direction: flip the arrow and reverse keyPoints
+                                        arrow.setAttribute('transform', 'rotate(180)');
+                                        
+                                        // Set position - spread them out evenly in reverse order
+                                        const offset = i / numArrows;
+                                        animate.setAttribute('keyPoints', `${1-offset}; ${1-(offset + 1/numArrows)}`);
+                                        animate.setAttribute('keyTimes', '0; 1');
+                                        animate.setAttribute('calcMode', 'linear');
+                                        
+                                        // Link to the new path
+                                        const mpath = document.createElementNS('http://www.w3.org/2000/svg', 'mpath');
+                                        mpath.setAttributeNS('http://www.w3.org/1999/xlink', 'href', '#solar-cable-path');
+                                        
+                                        animate.appendChild(mpath);
+                                        arrow.appendChild(animate);
+                                        
+                                        // Add arrow to SVG after the path
+                                        solarPath.parentNode.insertBefore(arrow, solarPath.nextSibling);
+                                    }
+                                } else {
+                                    // Convert error to non-console version or remove
+                                }
+                            } else {
+                                // Convert error to non-console version or remove
+                            }
+                        } else {
+                            // Regular processing for other paths
+                            const pathColor = getComputedStyle(element).stroke || 'black';
+                            const strokeWidth = parseFloat(getComputedStyle(element).strokeWidth) || 2;
+                            
+                            // Calculate arrow size based on path width
+                            const arrowSize = strokeWidth * 3;
+
+                            // Calculate approximate path length
+                            const pathLength = element.getTotalLength ? element.getTotalLength() : 500;
+                            
+                            // Extra debug for solar-cable - remove
+                            
+                            // Add background line
+                            const clone = element.cloneNode(true);
+                            clone.id = id + '-bg';
+                            clone.style.strokeDasharray = 'none';
+                            clone.style.strokeOpacity = 0.33;
+                            clone.style.animation = 'none';
+                            element.parentNode.insertBefore(clone, element);
+
+                            // Check if this is a heat exchanger path
+                            const isHeatExchanger = id.includes('heat-exchanger');
+
+                            // Use dashes for heat exchangers, but arrows for solar-cable and all other paths
+                            if (isHeatExchanger && id !== 'solar-cable') {
+                                // Use dashes for heat exchangers (similar to original index.html)
+                                const dashSize = strokeWidth * 2.25;
+                                const dashCycle = dashSize * 2;
+                                
+                                // Set dash array and store cycle length in CSS variable
+                                element.style.strokeDasharray = `${dashSize}`;
+                                element.style.setProperty('--dash-cycle', dashCycle);
+                                
+                                // Apply animations based on direction
+                                if (id.includes('from-')) {
+                                    element.style.strokeDashoffset = 0;
+                                    element.style.animationName = 'flowVisuallyBackward';
+                                } else {
+                                    element.style.strokeDashoffset = dashCycle;
+                                    element.style.animationName = 'flowVisuallyForward';
+                                }
+                                
+                                // Ensure animation properties are set
+                                element.style.animationDuration = '1s';
+                                element.style.animationTimingFunction = 'linear';
+                                element.style.animationIterationCount = 'infinite';
+                            } else {
+                                // Use arrows for all other paths (current approach)
+                                // Use a truly proportional approach for arrow density
+                                const baseDensity = 100; // 1 arrow per 100 units
+                                
+                                // Calculate arrows proportionally to path length
+                                const numArrows = Math.max(2, Math.ceil(pathLength / baseDensity));
+                                
+                                // Create multiple arrows for this path
+                                for (let i = 0; i < numArrows; i++) {
+                                    // Create arrow shape
+                                    const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+                                    
+                                    // Define arrow shape parameters
+                                    const headWidth = arrowSize * 0.75;
+                                    const shaftWidth = arrowSize/4;
+                                    const shaftLength = arrowSize * 1.5;
+                                    
+                                    // Points for an arrow shape
+                                    arrow.setAttribute('points', `0,0 -${headWidth},-${headWidth} -${headWidth},-${shaftWidth} -${shaftLength},-${shaftWidth} -${shaftLength},${shaftWidth} -${headWidth},${shaftWidth} -${headWidth},${headWidth}`);
+                                    arrow.setAttribute('fill', pathColor);
+                                    
+                                    // Create animation to move arrow along path
+                                    const animate = document.createElementNS('http://www.w3.org/2000/svg', 'animateMotion');
+                                    animate.setAttribute('dur', '2s');
+                                    animate.setAttribute('repeatCount', 'indefinite');
+                                    animate.setAttribute('rotate', 'auto');
+                                    
+                                    // Different starting positions for each arrow
+                                    animate.setAttribute('keyPoints', `${i/numArrows}; ${(i+1)/numArrows}`);
+                                    animate.setAttribute('keyTimes', '0; 1');
+                                    animate.setAttribute('calcMode', 'linear');
+                                    
+                                    // For from- paths, reverse the direction
+                                    if (id === 'solar-cable' || id.includes('from-')) {
+                                        arrow.setAttribute('transform', 'rotate(180)');
+                                        animate.setAttribute('keyPoints', `${1-(i/numArrows)}; ${1-((i+1)/numArrows)}`);
+                                    }
+                                    
+                                    // Link animation to the path
+                                    const mpath = document.createElementNS('http://www.w3.org/2000/svg', 'mpath');
+                                    mpath.setAttributeNS('http://www.w3.org/1999/xlink', 'href', `#${id}`);
+                                    
+                                    // Assemble animation
+                                    animate.appendChild(mpath);
+                                    arrow.appendChild(animate);
+                                    
+                                    // Add arrow to SVG after the path
+                                    element.parentNode.insertBefore(arrow, element.nextSibling);
+                                }
+                                
+                                // Hide the original path (make its stroke transparent)
+                                element.style.strokeOpacity = 0;
+                            }
+                        }
+                    } else {
+                        console.log(`Could not find element with id: ${id}`);
+                    }
+                });
+
+                // Add the keyframe animations for dash animations
+                const styleElement = document.createElement('style');
+                document.head.appendChild(styleElement);
+                styleElement.textContent = `
+                    /* Visually forward: offset decreases (e.g., dashCycle -> 0) */
+                    @keyframes flowVisuallyForward {
+                        to { stroke-dashoffset: 0; }
+                    }
+                    /* Visually backward: offset increases (e.g., 0 -> dashCycle) */
+                    @keyframes flowVisuallyBackward {
+                        to { stroke-dashoffset: var(--dash-cycle); }
+                    }
+                `;
+            })
+            .catch(error => console.error('Error loading SVG:', error));
+    </script>
+</body>
+</html>

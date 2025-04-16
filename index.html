@@ -72,13 +72,58 @@
     <img id="logo" src="logo.svg" alt="Logo">
 
     <script>
-        fetch('25040703-01.svg')
+        fetch('25041602-01.svg')
             .then(response => response.text())
             .then(svgContent => {
                 document.getElementById('svg-container').innerHTML = svgContent;
                 
                 // Get the SVG element
                 const svg = document.querySelector('svg');
+                
+                // Add filter definitions for animated shadow
+                let defs = svg.querySelector('defs');
+                if (!defs) {
+                    defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+                    svg.insertBefore(defs, svg.firstChild);
+                }
+
+                // Create drop shadow filter for cloud
+                const filter = document.createElementNS('http://www.w3.org/2000/svg', 'filter');
+                filter.id = 'animated-shadow';
+                filter.setAttribute('x', '-30%');
+                filter.setAttribute('y', '-30%');
+                filter.setAttribute('width', '160%');
+                filter.setAttribute('height', '160%');
+
+                // Create the shadow effect
+                const feDropShadow = document.createElementNS('http://www.w3.org/2000/svg', 'feDropShadow');
+                feDropShadow.setAttribute('dx', '0');
+                feDropShadow.setAttribute('dy', '2');
+                feDropShadow.setAttribute('stdDeviation', '3');
+                feDropShadow.setAttribute('flood-opacity', '0.25');
+                feDropShadow.setAttribute('flood-color', '#333333');
+
+                // Create the animation for the shadow
+                const animateStdDev = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
+                animateStdDev.setAttribute('attributeName', 'stdDeviation');
+                animateStdDev.setAttribute('values', '3;4;3');
+                animateStdDev.setAttribute('dur', '5s');
+                animateStdDev.setAttribute('repeatCount', 'indefinite');
+                
+                // Add animation to the shadow effect
+                feDropShadow.appendChild(animateStdDev);
+                
+                // Add shadow to filter
+                filter.appendChild(feDropShadow);
+                
+                // Add filter to defs
+                defs.appendChild(filter);
+                
+                // Apply filter to the cloud-group
+                const cloudGroup = svg.querySelector('#cloud-group');
+                if (cloudGroup) {
+                    cloudGroup.setAttribute('filter', 'url(#animated-shadow)');
+                }
                 
                 // Create a single style element for all animations
                 const styleElement = document.createElement('style');
