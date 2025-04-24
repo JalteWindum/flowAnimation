@@ -21,7 +21,7 @@
 <body>
     <div id="svg-container"></div>
     <div id="title-container">
-        <div id="title-main">Generating, storing and using energy at Vandkulturhuset</div>
+        <div id="title-main">Generating, Storing, and Reusing Energy at Vandkulturhuset</div>
         <div id="title-sub">The outdoor pool is warmed with heat stored underground, as well as heat pulled from the community roof and ice baths</div>
     </div>
     <div id="logo">
@@ -31,7 +31,7 @@
     </div>
 
     <script>
-        fetch('25042405-01.svg')
+        fetch('25042407-01.svg')
             .then(response => response.text())
             .then(svgContent => {
                 document.getElementById('svg-container').innerHTML = svgContent;
@@ -288,7 +288,51 @@
                     @keyframes flowVisuallyBackward {
                         to { stroke-dashoffset: var(--dash-cycle); }
                     }
+                    
+                    /* Fade animation for ground elements */
+                    @keyframes fadeInOut {
+                        0% { opacity: 0; }
+                        5% { opacity: 1; }
+                        45% { opacity: 1; }
+                        50% { opacity: 0; }
+                        100% { opacity: 0; }
+                    }
                 `;
+                
+                // Add alternating animation for ground-red and ground-blue
+                const groundRed = svg.querySelector('#ground-red');
+                const groundBlue = svg.querySelector('#ground-blue');
+                
+                if (groundRed && groundBlue) {
+                    // Create custom animations for each element
+                    const styleElement2 = document.createElement('style');
+                    document.head.appendChild(styleElement2);
+                    styleElement2.textContent = `
+                        @keyframes redFade {
+                            0% { opacity: 1; }
+                            43% { opacity: 1; }
+                            50% { opacity: 0; }
+                            93% { opacity: 0; }
+                            100% { opacity: 1; }
+                        }
+                        
+                        @keyframes blueFade {
+                            0% { opacity: 0; }
+                            43% { opacity: 0; }
+                            50% { opacity: 1; }
+                            93% { opacity: 1; }
+                            100% { opacity: 0; }
+                        }
+                    `;
+                    
+                    // Set initial state
+                    groundRed.style.opacity = '1';
+                    groundBlue.style.opacity = '0';
+                    
+                    // Apply animations - 14 second total cycle (7s per state)
+                    groundRed.style.animation = 'redFade 14s linear infinite';
+                    groundBlue.style.animation = 'blueFade 14s linear infinite';
+                }
             })
             .catch(error => console.error('Error loading SVG:', error));
     </script>
